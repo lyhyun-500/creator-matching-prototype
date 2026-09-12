@@ -79,4 +79,37 @@ Claude Code (Sonnet 5, `claude-sonnet-5`), 단일 대화 세션. 사용자의 �
 1. `Initial implementation: creator matching prototype` — 1차 구현 전체(이전 세션 산출물)를 베이스라인으로 커밋.
 2. `Add tabbed results with pagination and compact candidate cards` — 탭, 페이지네이션, 카드 압축, 빈 탭 바로가기 버튼.
 3. `Add quick-add budget input controls` — 예산 입력 필드 재구성과 금액 추가/지우기 버튼.
-4. (본 문서 커밋 예정) — PRD.md v1.1, README.md, AI_USAGE.md 갱신.
+4. `Update PRD/README/AI_USAGE for tabbed results and budget input` — 위 두 라운드에 맞춘 문서 갱신.
+5. `Fix flowchart accuracy and split recommendation/UI flows` — flowchart.md의 중복 id 검사 시점 오류 수정, 추천 처리/UI 조작 흐름 분리.
+
+## 3차 작업: GitHub Public 저장소 게시 (2026-09-12)
+
+기존 로컬 git 저장소(리모트 없음)를 그대로 GitHub `lyhyun-500/creator-matching-prototype`(Public)에 push했습니다. `gh repo create --source=. --remote=origin`으로 원격 저장소를 만들고 `git push -u origin main`으로 5개 커밋 이력을 그대로 올렸습니다(squash·force push 없음).
+
+게시 전 `git log -p --all`과 파일명 전체를 grep으로 스캔해 `.env`/인증정보/이메일/전화번호/과제 안내문 원문·개인 핸드오프가 없음을 확인했고, `node_modules`/`dist`가 커밋된 적 없음과 CSV 원본 SHA-256 불변을 재확인했습니다. 이후 별도 임시 폴더에 `git clone`해 `npm install`/`npm run test`(41개 통과)/`npm run build`/`npm run preview`/`npm run dev`/`npm run lint`를 재실행했고, 수정이 필요한 문제는 없었습니다.
+
+## 4차 작업: Vercel 배포 (2026-09-12)
+
+### 진행 과정
+
+- Vercel CLI가 설치되어 있지 않아 `npm install -g vercel`로 설치. `vercel whoami`는 로그아웃 상태였고, 이후 명령(`vercel teams ls`) 실행 시 디바이스 인증 플로우가 자동으로 트리거되어 `lyhyun-500` 계정으로 로그인되었습니다(브라우저에 이미 활성 세션이 있었던 것으로 보이며, 이 세션이 별도로 자격 증명을 입력하거나 추출하지 않았습니다).
+- `vercel teams ls`로 확인한 워크스페이스는 `leeyhs-projects-cb923795`("Leeyh's projects") 1개뿐이었고, `vercel projects ls`(기본 스코프)도 동일 워크스페이스를 가리켰습니다. 계정/팀이 모호하지 않아 별도로 묻지 않고 이 워크스페이스를 사용했습니다.
+- 해당 워크스페이스의 기존 프로젝트는 `onehandbook`, `portfolio-blog` 2개뿐이며 둘 다 이 저장소와 무관해 새 프로젝트가 필요하다고 판단했습니다.
+- `vercel project add creator-matching-prototype` → `vercel link --yes --project creator-matching-prototype` → `vercel git connect https://github.com/lyhyun-500/creator-matching-prototype.git` 순서로 프로젝트 생성, 로컬 디렉터리 연결, GitHub 저장소 연결(이후 push마다 자동 배포)을 완료했습니다.
+- `vercel link`가 로컬에 `.env.local`(OIDC 토큰 포함)을 만들고 `.gitignore`에 `.vercel`, `.env*`를 자동으로 추가했습니다. 커밋 전 `git status`와 `git check-ignore -v`로 두 파일이 실제로 무시되는지 확인한 뒤, `.gitignore` 변경과 `vercel.json`만 커밋했습니다(토큰 파일은 커밋되지 않음).
+- 저장소에 Vite 표준 `public/` 디렉터리가 있어, Vercel이 프레임워크를 자동 감지하지 못하면 출력 디렉터리를 `dist`가 아니라 `public`으로 잘못 추정하는 것을 `vercel project inspect`로 확인했습니다. 이를 막기 위해 `vercel.json`(`framework: vite`, `buildCommand: npm run build`, `outputDirectory: dist`)을 저장소에 커밋해 대시보드 기본값보다 우선 적용되게 했습니다.
+- `git push origin main`으로 커밋을 올려 GitHub 연동 배포를 트리거했고, `vercel inspect --logs`로 실제 빌드 로그를 받아 `npm run build`(`tsc -b && vite build`)가 실행되고 `dist/assets/*.js·css`가 생성되었음을 확인했습니다 — `vercel project inspect`의 "Framework Settings" 요약 패널은 여전히 "Other/public"으로 표시되지만, 실제 빌드 로그가 `vercel.json` 설정대로 동작했음을 보여주는 더 신뢰할 수 있는 증거라고 판단했습니다.
+- `vercel alias ls`로 안정적인 프로덕션 도메인이 `creator-matching-prototype.vercel.app`(Vercel 기본 도메인, 커스텀 도메인 미구매)임을 확인했습니다.
+- `vercel project protection`으로 확인한 결과 이 프로젝트를 포함해 워크스페이스의 다른 두 프로젝트도 기본값으로 `ssoProtection: all_except_custom_domains`가 걸려 있었습니다. 이 값은 커스텀 도메인에는 적용되지 않지만 우리가 쓰는 것은 `*.vercel.app` 기본 도메인이라 로그인 요구 대상에 포함될 수 있다고 판단해, 이 프로젝트에 한해 `vercel project protection disable creator-matching-prototype --sso`로 SSO 보호를 껐습니다. `onehandbook`, `portfolio-blog`의 보호 설정은 확인만 하고 변경하지 않았습니다.
+
+### 실제로 수행한 검증
+
+- **HTTP 응답 확인(실제로 수행)**: `curl`로 프로덕션 도메인(`creator-matching-prototype.vercel.app`)과 배포별 URL, `git-main` 별칭 URL 모두 200 확인. `/data/dummy_creators.csv`도 200이며, 응답 바이트의 SHA-256이 저장소 원본 `dummy_creators.csv`와 정확히 일치함을 확인(BOM 포함). `index.html`의 `<title>` 태그가 정상 렌더링 대상 문자열과 일치함을 확인.
+- **배포 코드 동일성 확인(실제로 수행)**: 로컬에서 `dummy_creators.csv`가 아닌 소스 코드로 `npm run build`를 새로 실행해 만든 `dist/assets/*.js`·`*.css`의 SHA-256과, 프로덕션에서 실제로 서빙되는 같은 파일의 SHA-256이 정확히 일치함을 확인했습니다. 즉 로컬에서 vitest로 검증한 것과 **바이트 단위로 동일한** 코드가 배포되어 있습니다.
+- **자동화 테스트로 간접 검증(실제로 수행, 단 이 배포 자체를 클릭한 것은 아님)**: 사용자가 요청한 시나리오(뷰티·패션/마이크로/200만원 → 기존 21명·신규 3명, 상위 3명 점수/순서; 피트니스/매크로/50만원 → 빈 결과 + 593만원 예산 대안)는 이전 라운드에 작성한 `search.test.ts`/`pagination.test.ts`가 이미 정확히 이 값들을 단정문으로 검증하고 있고, 위에서 확인했듯 그 테스트가 통과한 것과 동일한 코드가 지금 배포되어 있습니다.
+- **하지 않은 것 (명확히 구분)**: 이번 세션에도 브라우저 자동화 도구가 연결되어 있지 않았습니다(이전 대화에서 사용자가 연결을 보류했고, 이 세션에서 다시 권유하지 않기로 되어 있어 재시도하지 않았습니다). 따라서 탭 전환, 정렬 변경, 페이지네이션 이전/다음, 추천 근거 펼치기, 예산 추가/지우기 버튼, 조건 완화 대안 클릭 등 **실제 클릭 동작은 이 배포된 프로덕션 사이트에서 직접 확인하지 못했습니다.** 위 두 항목(HTTP 응답, 코드 동일성)은 실제로 확인한 사실이고, 클릭 시나리오는 코드/테스트 근거로 강하게 뒷받침되지만 이 세션이 브라우저로 직접 관찰한 것은 아니라는 점을 구분해 기록합니다.
+
+### 커밋
+
+6. `Add Vercel deployment config` — `vercel.json` 추가, `vercel link`가 생성한 `.gitignore` 항목 반영.
+7. (본 절 커밋 예정) — README.md에 데모 링크·배포 절 추가, AI_USAGE.md(본 문서)에 배포 과정과 검증 범위 기록.
