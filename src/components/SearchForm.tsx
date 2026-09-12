@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { SIZE_TIERS, type SizeTier } from '../lib/constants';
 import { validateBudgetInput, validateCategories, validateSizeTier } from '../lib/validation';
+import { BudgetInput } from './BudgetInput';
 
 export interface DraftCriteria {
   budgetText: string;
@@ -87,21 +88,15 @@ export function SearchForm({
             달라질 수 있습니다.
           </span>
         </label>
-        <input
-          id="budget-input"
-          type="text"
-          inputMode="numeric"
-          placeholder="예: 2,000,000"
+        <BudgetInput
           value={draft.budgetText}
-          aria-invalid={Boolean(errors.budget)}
-          aria-describedby={errors.budget ? 'budget-error' : undefined}
-          onChange={(e) => onDraftChange({ ...draft, budgetText: e.target.value })}
+          onChange={(nextRaw) => {
+            onDraftChange({ ...draft, budgetText: nextRaw });
+            setErrors((prev) => ({ ...prev, budget: undefined }));
+          }}
+          error={errors.budget}
+          onAddError={(message) => setErrors((prev) => ({ ...prev, budget: message }))}
         />
-        {errors.budget && (
-          <p className="field-error" id="budget-error" role="alert">
-            {errors.budget}
-          </p>
-        )}
       </div>
 
       <fieldset className="field">
