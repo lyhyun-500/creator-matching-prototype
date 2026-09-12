@@ -3,16 +3,28 @@ import type { Alternative } from '../lib/types';
 
 interface Props {
   alternatives: Alternative[];
-  hasNewCandidates: boolean;
+  newCandidateCount: number;
   onApply: (alternative: Alternative) => void;
+  onJumpToNewTab: () => void;
 }
 
-export function EmptyStateAlternatives({ alternatives, hasNewCandidates, onApply }: Props) {
+export function EmptyStateAlternatives({
+  alternatives,
+  newCandidateCount,
+  onApply,
+  onJumpToNewTab,
+}: Props) {
   return (
     <div className="empty-state">
       <p>과거 평균 집행액이 예산 이하인 후보가 0명입니다.</p>
-      {hasNewCandidates && (
-        <p className="muted">캠페인 이력이 없는 후보는 ‘견적 확인 필요’ 영역에서 확인할 수 있습니다.</p>
+
+      {newCandidateCount > 0 && (
+        <div className="empty-state__jump">
+          <p className="muted">캠페인 이력이 없는 후보는 별도 탭에서 확인할 수 있습니다.</p>
+          <button type="button" className="btn btn--primary" onClick={onJumpToNewTab}>
+            견적 확인 필요 후보 {formatCount(newCandidateCount)}명 보기
+          </button>
+        </div>
       )}
 
       {alternatives.length > 0 ? (

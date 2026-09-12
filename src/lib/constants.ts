@@ -30,3 +30,12 @@ export const NEW_CANDIDATE_SCORE_DIVISOR = SCORE_WEIGHTS.reach + SCORE_WEIGHTS.e
 
 export const RATING_SCALE_MAX = 5;
 export const UNVERIFIED_RATING_SUBSTITUTE = 50;
+
+/** 예산 입력의 '금액 추가' 버튼. amount는 증가 단위이며 입력 상한이 아니다. */
+export const BUDGET_QUICK_ADD_OPTIONS = [
+  { label: '+10만 원', amount: 100_000 },
+  { label: '+100만 원', amount: 1_000_000 },
+  { label: '+1,000만 원', amount: 10_000_000 },
+] as const;
+
+export const RESULTS_PAGE_SIZE = 10;
